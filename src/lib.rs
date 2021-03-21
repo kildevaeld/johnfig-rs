@@ -6,14 +6,14 @@ use std::path::{Path, PathBuf};
 use std::sync::Arc;
 use thiserror::Error as ThisError;
 
-pub trait Loader<T: Serialize + DeserializeOwned> {
+pub trait Loader<T: Serialize + DeserializeOwned>: Send + Sync {
     fn extensions(&self) -> &[&str];
     fn load(&self, path: &Path, content: Vec<u8>) -> Result<T, Error>;
     fn save(&self, content: &T) -> Result<Vec<u8>, Error>;
 }
 
 #[async_trait]
-pub trait Locator {
+pub trait Locator: Send + Sync {
     async fn locate(&self, search_names: &[String]) -> Result<Vec<PathBuf>, Error>;
 }
 
