@@ -12,13 +12,11 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     let cfg = smol::block_on(async move {
         let cfg = ConfigBuilder::<ServerConfig>::new("simple")
-            .with_name_pattern("Cargo.{ext}")
-            // .with_search_path(Path::new("./examples"))?
-            .with_locator(WalkDirLocator::new(".")?.depth(0))
+            .with_locator(WalkDirLocator::new(".")?.depth(1))
             .with_current_path()?
             .build()?;
 
-        cfg.load().await
+        cfg.load_all(true).await
     })?;
 
     println!("Debug {:?}", cfg);

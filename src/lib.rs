@@ -227,16 +227,6 @@ impl<T: Serialize + DeserializeOwned> Config<T> {
     pub async fn load(&self) -> Result<ConfigFile<T>, Error> {
         let mut found: Vec<_> = self.load_all2().take(1).try_collect().await?;
 
-        // let stream = self.load_all2();
-        // futures::pin_mut!(stream);
-
-        // while let Some(file) = stream.next().await {
-        //     match file {
-        //         Ok(file) => return Ok(file),
-        //         Err(_) => continue,
-        //     }
-        // }
-
         match found.pop() {
             Some(found) => Ok(found),
             None => Err(Error::NotFound),
