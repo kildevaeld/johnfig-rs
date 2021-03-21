@@ -138,8 +138,8 @@ impl<T: Serialize + DeserializeOwned> ConfigBuilder<T> {
 
 #[derive(Clone, Debug)]
 pub struct ConfigFile<T> {
-    config: T,
-    path: PathBuf,
+    pub config: T,
+    pub path: PathBuf,
 }
 
 impl<T> std::ops::Deref for ConfigFile<T> {
