@@ -1,5 +1,5 @@
+mod encoder;
 mod error;
-mod loader;
 mod locator;
 use futures::{Stream, StreamExt, TryStreamExt};
 use serde::{de::DeserializeOwned, Serialize};
@@ -7,8 +7,8 @@ use std::path::PathBuf;
 use std::sync::Arc;
 
 pub use self::{
+    encoder::{Encoder, Loader, LoaderBuilder},
     error::*,
-    loader::{Encoder, Loader, LoaderBuilder},
     locator::*,
 };
 
