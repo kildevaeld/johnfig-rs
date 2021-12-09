@@ -184,7 +184,7 @@ fn load_configs<'a>(
             })
         })
 }
-#[derive(Debug, Default)]
+#[derive(Debug, Default, Clone)]
 pub struct Config {
     inner: BTreeMap<String, Value>,
     files: Vec<PathBuf>,
