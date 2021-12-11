@@ -4,15 +4,10 @@ use std::{
     path::PathBuf,
 };
 
+use crate::{find, locator::Locator, DirLocator, Encoder, Error, Loader, LoaderBuilder};
 use futures::{Stream, StreamExt, TryStreamExt};
 use serde::Serialize;
-
-use crate::{
-    find,
-    locator::Locator,
-    value::{merge, Value},
-    DirLocator, Encoder, Error, Loader, LoaderBuilder,
-};
+use value::{merge, Value};
 
 #[derive(Clone, Debug)]
 pub struct ConfigFile<T> {
@@ -207,7 +202,7 @@ impl Config {
 impl<S: AsRef<str>> std::ops::Index<S> for Config {
     type Output = Value;
     fn index(&self, idx: S) -> &Self::Output {
-        static NULL: Value = Value::Option(None);
+        static NULL: Value = Value::None;
         self.inner.get(idx.as_ref()).unwrap_or(&NULL)
     }
 }
@@ -215,8 +210,7 @@ impl<S: AsRef<str>> std::ops::Index<S> for Config {
 impl<S: AsRef<str>> std::ops::IndexMut<S> for Config {
     fn index_mut(&mut self, idx: S) -> &mut Self::Output {
         if !self.inner.contains_key(idx.as_ref()) {
-            self.inner
-                .insert(idx.as_ref().to_owned(), Value::Option(None));
+            self.inner.insert(idx.as_ref().to_owned(), Value::None);
         }
 
         self.inner.get_mut(idx.as_ref()).unwrap()

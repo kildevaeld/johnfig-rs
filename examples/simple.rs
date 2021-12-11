@@ -1,5 +1,4 @@
-use futures::TryStreamExt;
-use johnfig::{find, value, ConfigBuilder, WalkDirLocator};
+use johnfig::{value, ConfigBuilder, WalkDirLocator};
 use serde::{Deserialize, Serialize};
 
 #[derive(Serialize, Deserialize, Debug)]
@@ -26,8 +25,6 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
             .with_sorting(|a, b| a.cmp(b))
             .build()
             .await
-
-        // cfg.files().try_collect::<Vec<_>>().await
     })?;
 
     // cfg.sort();
