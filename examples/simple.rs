@@ -1,4 +1,4 @@
-use johnfig::{value, ConfigBuilder, WalkDirLocator};
+use johnfig::{value, ConfigBuilder, DirLocator, WalkDirLocator};
 use serde::{Deserialize, Serialize};
 
 #[derive(Serialize, Deserialize, Debug)]
@@ -17,22 +17,30 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     pretty_env_logger::init();
 
     let mut cfg = smol::block_on(async move {
-        ConfigBuilder::new()
-            .with_locator(WalkDirLocator::new(".")?.depth(1))
+        let finder = ConfigBuilder::new()
+            .with_search_path("./examples")?
+            // .with_locator(WalkDirLocator::new(".")?.depth(1))
             .with_current_path()?
-            .with_name_pattern("simple.config.{ext}")
-            .with_name_pattern("0-dev.{ext}")
+            .with_name_pattern("{name}.config.{ext}")
+            .with_name_pattern("0-{env}.{ext}")
             .with_sorting(|a, b| a.cmp(b))
-            .build()
-            .await
+            .build_with(|ext| {
+                value!({
+                    "ext": ext,
+                    "env": "dev",
+                    "name": "simple"
+                })
+            })?;
+
+        finder.config().await
     })?;
 
     // cfg.sort();
 
-    cfg["database"] = value!({
-        "address": "http://github.com",
-        "user": "rasmus"
-    });
+    // cfg["database"] = value!({
+    //     "address": "http://github.com",
+    //     "user": "rasmus"
+    // });
 
     println!("Debug {:#?}", cfg);
 

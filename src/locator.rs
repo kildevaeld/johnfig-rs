@@ -1,30 +1,47 @@
 use super::error::Error;
+use async_stream::try_stream;
 use async_trait::async_trait;
-use futures::{future::BoxFuture, FutureExt, TryStreamExt};
+use futures::{future::BoxFuture, stream::BoxStream, FutureExt, StreamExt, TryStreamExt};
 use log::trace;
 use std::path::PathBuf;
 
-#[async_trait]
 pub trait Locator: Send + Sync {
-    async fn locate(&self, search_names: &[String]) -> Result<Vec<PathBuf>, Error>;
+    fn locate<'a>(
+        &'a self,
+        search_names: &'a [glob::Pattern],
+    ) -> BoxStream<'a, Result<PathBuf, Error>>;
 }
 
 pub struct DirLocator(pub PathBuf);
 
 #[async_trait]
 impl Locator for DirLocator {
-    async fn locate(&self, search_names: &[String]) -> Result<Vec<PathBuf>, Error> {
-        Ok(search_names
-            .iter()
-            .filter_map(|name| {
-                let path = self.0.join(name);
-                if path.exists() && !path.is_dir() {
-                    Some(path)
-                } else {
-                    None
+    fn locate<'a>(
+        &'a self,
+        search_names: &'a [glob::Pattern],
+    ) -> BoxStream<'a, Result<PathBuf, Error>> {
+        try_stream! {
+            let mut readir = async_fs::read_dir(&self.0)
+            .await?;
+
+            while let Some(next) = readir.try_next().await? {
+
+                let path = next.path();
+
+                for pat in search_names {
+
+                    let filename = path.file_name().unwrap();
+                    if pat.matches(&filename.to_string_lossy()) {
+                        yield path;
+                        break
+                    }
                 }
-            })
-            .collect())
+            }
+
+        }
+        .boxed()
+
+        // unimplemented!()
     }
 }
 
@@ -105,14 +122,14 @@ impl WalkDirLocator {
     }
 }
 
-#[async_trait]
-impl Locator for WalkDirLocator {
-    async fn locate(&self, search_names: &[String]) -> Result<Vec<PathBuf>, Error> {
-        let mut rets = Vec::new();
+// #[async_trait]
+// impl Locator for WalkDirLocator {
+//     async fn locate(&self, search_names: &[String]) -> Result<Vec<PathBuf>, Error> {
+//         let mut rets = Vec::new();
 
-        self.read_dir(&self.root, search_names, &mut rets, 0)
-            .await?;
+//         self.read_dir(&self.root, search_names, &mut rets, 0)
+//             .await?;
 
-        Ok(rets)
-    }
-}
+//         Ok(rets)
+//     }
+// }

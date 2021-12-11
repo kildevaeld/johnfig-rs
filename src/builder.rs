@@ -1,5 +1,5 @@
 use super::config::Config;
-use crate::{locator::Locator, DirLocator, Encoder, Error, LoaderBuilder};
+use crate::{locator::Locator, DirLocator, Encoder, Error, Loader, LoaderBuilder};
 use futures::{Stream, StreamExt, TryStreamExt};
 use serde::Serialize;
 use std::{
@@ -93,17 +93,16 @@ impl ConfigBuilder {
         self
     }
 
-    pub async fn build(self) -> Result<Config, Error> {
+    pub fn build(self) -> Result<ConfigFinder, Error> {
         self.build_with(|ext| Context {
             ext: ext.to_string(),
         })
-        .await
     }
 
-    pub async fn build_with<C: Serialize, F: Fn(&str) -> C>(
+    pub fn build_with<C: Serialize, F: Fn(&str) -> C>(
         self,
         create_ctx: F,
-    ) -> Result<Config, Error> {
+    ) -> Result<ConfigFinder, Error> {
         let mut templates = tinytemplate::TinyTemplate::new();
 
         let search_names = self.search_names;
@@ -133,42 +132,66 @@ impl ConfigBuilder {
             .flatten()
             .collect::<Result<Vec<_>, Error>>()?;
 
-        let mut configs = find_files(&self.search_paths, &search_names)
-            .and_then(|search_path| {
-                let loader = loader.clone();
-                async move {
-                    let ext = match search_path.extension() {
-                        Some(ext) => ext.to_string_lossy(),
-                        None => {
-                            println!("no extension");
-                            "json".into()
-                        }
-                    };
+        let patterns = search_names
+            .iter()
+            .map(|p| glob::Pattern::new(p).unwrap())
+            .collect::<Vec<_>>();
 
-                    let data = async_fs::read(&search_path).await?;
+        Ok(ConfigFinder(Arc::new(ConfigFinderInner {
+            patterns,
+            locators: self.search_paths,
+            loader,
+        })))
+    }
+}
 
-                    let out = loader.load(data, &ext)?;
+struct ConfigFinderInner {
+    patterns: Vec<glob::Pattern>,
+    locators: Vec<Box<dyn Locator>>,
+    loader: Arc<Loader<BTreeMap<String, Value>>>,
+}
 
-                    Result::<_, Error>::Ok(ConfigFile {
-                        config: out,
-                        path: search_path,
-                    })
+#[derive(Clone)]
+pub struct ConfigFinder(Arc<ConfigFinderInner>);
+
+impl ConfigFinder {
+    pub fn files<'a>(&'a self) -> impl Stream<Item = PathBuf> + 'a {
+        find_files(&self.0.locators, &self.0.patterns).filter_map(|ret| async move { ret.ok() })
+    }
+
+    pub(crate) fn config_files<'a>(
+        &'a self,
+    ) -> impl Stream<Item = Result<ConfigFile<BTreeMap<String, Value>>, Error>> + 'a {
+        self.files().then(move |search_path| async move {
+            let ext = match search_path.extension() {
+                Some(ext) => ext.to_string_lossy(),
+                None => {
+                    println!("no extension");
+                    "json".into()
                 }
+            };
+
+            let data = async_fs::read(&search_path).await?;
+
+            let out = self.0.loader.load(data, &ext)?;
+
+            Result::<_, Error>::Ok(ConfigFile {
+                config: out,
+                path: search_path,
             })
-            .try_collect::<Vec<_>>()
-            .await?;
+        })
+    }
 
-        if let Some(mut sort) = self.sort {
-            configs.sort_by(|a, b| sort(&a.path, &b.path));
-        } else {
-            configs.sort_by(|a, b| a.path.cmp(&b.path));
-        }
+    pub async fn config(&self) -> Result<Config, Error> {
+        let mut configs = self.config_files().try_collect::<Vec<_>>().await?;
 
-        // let files = configs.iter().map(|m| m.path.clone()).collect();
+        configs.sort_by(|a, b| a.path.cmp(&b.path));
+
+        let files = configs.iter().map(|m| m.path.clone()).collect();
 
         Ok(Config {
             inner: merge_config(configs),
-            // files,
+            files,
         })
     }
 }
@@ -192,17 +215,12 @@ fn merge_config(files: Vec<ConfigFile<BTreeMap<String, Value>>>) -> BTreeMap<Str
 
 pub fn find_files<'a>(
     locators: &'a [Box<dyn Locator>],
-    patterns: &'a [String],
+    patterns: &'a [glob::Pattern],
 ) -> impl Stream<Item = Result<std::path::PathBuf, Error>> + 'a {
     let mut seen = HashSet::<PathBuf>::default();
     futures::stream::iter(locators.iter())
-        .then(move |search_path| async move {
-            let paths = search_path.locate(patterns).await?;
-            Result::<_, Error>::Ok(futures::stream::iter(
-                paths.into_iter().map(Result::<_, Error>::Ok),
-            ))
-        })
-        .try_flatten()
+        .then(move |search_path| async move { search_path.locate(patterns) })
+        .flatten()
         .try_filter_map(move |val| {
             if seen.contains(&val) {
                 futures::future::ok(None)

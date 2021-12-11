@@ -1,13 +1,16 @@
-use std::collections::BTreeMap;
+use std::{collections::BTreeMap, path::PathBuf};
 use value::Value;
 
 #[derive(Debug, Default, Clone)]
 pub struct Config {
     pub(crate) inner: BTreeMap<String, Value>,
-    // files: Vec<PathBuf>,
+    pub(crate) files: Vec<PathBuf>,
 }
 
 impl Config {
+    pub fn files(&self) -> &[PathBuf] {
+        &self.files
+    }
     pub fn get<K>(&self, name: impl AsRef<str>) -> Option<&Value> {
         self.inner.get(name.as_ref())
     }
@@ -55,6 +58,7 @@ impl<'de> serde::Deserialize<'de> for Config {
     {
         Ok(Config {
             inner: BTreeMap::<String, Value>::deserialize(deserializer)?,
+            files: Vec::default(),
         })
     }
 }

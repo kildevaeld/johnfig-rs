@@ -7,7 +7,7 @@ mod locator;
 pub use value::*;
 
 pub use self::{
-    builder::ConfigBuilder,
+    builder::{ConfigBuilder, ConfigFinder},
     config::*,
     encoder::{Encoder, Loader, LoaderBuilder},
     error::*,
