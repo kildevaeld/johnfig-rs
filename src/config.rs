@@ -38,3 +38,23 @@ impl<S: AsRef<str>> std::ops::IndexMut<S> for Config {
         self.inner.get_mut(idx.as_ref()).unwrap()
     }
 }
+
+impl serde::Serialize for Config {
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: serde::ser::Serializer,
+    {
+        self.inner.serialize(serializer)
+    }
+}
+
+impl<'de> serde::Deserialize<'de> for Config {
+    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+    where
+        D: serde::de::Deserializer<'de>,
+    {
+        Ok(Config {
+            inner: BTreeMap::<String, Value>::deserialize(deserializer)?,
+        })
+    }
+}
