@@ -29,6 +29,6 @@ smol = "1"
 pretty_env_logger = "0.4"
 
 [features]
-default = [ "watch" ]
+default = [  ]
 watch = ["notify"]
 yaml = [ "serde_yaml" ]
