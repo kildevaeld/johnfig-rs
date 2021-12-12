@@ -24,7 +24,14 @@ impl Config {
         &self,
         name: &str,
     ) -> Result<S, DeserializerError> {
-        self.inner[name].clone().try_into()
+        if let Some(v) = self.inner.get(name).cloned() {
+            v.try_into()
+        } else {
+            Err(DeserializerError::Custom(format!(
+                "field not found: {}",
+                name
+            )))
+        }
     }
 
     pub fn set(&mut self, name: impl ToString, value: impl Into<Value>) -> Option<Value> {
