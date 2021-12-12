@@ -15,3 +15,6 @@ pub use self::{
     error::*,
     locator::*,
 };
+
+#[cfg(feature = "watch")]
+pub use watch::WatchableConfig;
