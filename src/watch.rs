@@ -129,7 +129,7 @@ impl WatchableConfig {
         cfg
     }
 
-    pub async fn get<K>(&self, name: impl AsRef<str>) -> Option<Value> {
+    pub async fn get(&self, name: impl AsRef<str>) -> Option<Value> {
         self.config.read().await.get(name).cloned()
     }
 
