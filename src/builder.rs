@@ -219,9 +219,17 @@ impl ConfigFinder {
     }
 
     #[cfg(feature = "watch")]
-    pub fn watch(&self) -> Result<impl Stream<Item = Result<Config, Error>> + Send, Error> {
+    pub fn watch(&self) -> impl Stream<Item = Result<Config, Error>> + Send {
         use crate::watch::watch;
         watch(self.clone())
+    }
+
+    #[cfg(feature = "watch")]
+    pub fn watchable_config<R: runtime::Runtime>(
+        &self,
+        runtime: R,
+    ) -> crate::watch::WatchableConfig {
+        crate::watch::WatchableConfig::new(runtime, self.clone())
     }
 }
 

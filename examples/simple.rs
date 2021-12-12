@@ -1,5 +1,6 @@
 use futures::{pin_mut, StreamExt, TryStreamExt};
-use johnfig::{value, ConfigBuilder, DirLocator};
+use johnfig::{value, ConfigBuilder, DirLocator, Error};
+use notify::Watcher;
 use serde::{Deserialize, Serialize};
 
 #[derive(Serialize, Deserialize, Debug)]
@@ -33,14 +34,13 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
                 })
             })?;
 
-        let watcher = finder.watch()?;
-        pin_mut!(watcher);
-        while let Some(cfg) = watcher.try_next().await? {
-            println!("Debug {:#?}", cfg);
-            break;
+        let mut watcher = finder.watchable_config(runtime::SmolGlobalRuntime);
+
+        while let Some(_) = watcher.watch().next().await {
+            println!("config changed: {:?}", watcher.snapshot().await);
         }
 
-        finder.config().await
+        Result::<_, Error>::Ok(watcher.snapshot().await)
     })?;
 
     cfg["database"] = value!({

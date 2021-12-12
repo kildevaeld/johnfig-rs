@@ -11,7 +11,8 @@ impl Config {
     pub fn files(&self) -> &[PathBuf] {
         &self.files
     }
-    pub fn get<K>(&self, name: impl AsRef<str>) -> Option<&Value> {
+
+    pub fn get(&self, name: impl AsRef<str>) -> Option<&Value> {
         self.inner.get(name.as_ref())
     }
 
@@ -19,8 +20,12 @@ impl Config {
         self.inner.get_mut(name.as_ref())
     }
 
-    pub fn set(&mut self) -> Option<&Value> {
-        None
+    pub fn set(&mut self, name: impl ToString, value: impl Into<Value>) -> Option<Value> {
+        self.inner.insert(name.to_string(), value.into())
+    }
+
+    pub fn contains(&self, name: impl AsRef<str>) -> bool {
+        self.inner.contains_key(name.as_ref())
     }
 }
 
