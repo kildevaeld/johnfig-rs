@@ -1,11 +1,11 @@
 use super::error::Error;
 use async_stream::try_stream;
 use async_trait::async_trait;
-use futures::{future::BoxFuture, stream::BoxStream, FutureExt, StreamExt, TryStreamExt};
-use log::trace;
-use std::path::PathBuf;
+use futures::{stream::BoxStream, StreamExt, TryStreamExt};
+use std::path::{Path, PathBuf};
 
 pub trait Locator: Send + Sync {
+    fn root(&self) -> &PathBuf;
     fn locate<'a>(
         &'a self,
         search_names: &'a [glob::Pattern],
@@ -16,6 +16,9 @@ pub struct DirLocator(pub PathBuf);
 
 #[async_trait]
 impl Locator for DirLocator {
+    fn root(&self) -> &PathBuf {
+        &self.0
+    }
     fn locate<'a>(
         &'a self,
         search_names: &'a [glob::Pattern],
@@ -31,7 +34,7 @@ impl Locator for DirLocator {
                 for pat in search_names {
 
                     let filename = path.file_name().unwrap();
-                    if pat.matches(&filename.to_string_lossy()) {
+                    if pat.matches_path(Path::new(filename)) {
                         yield path;
                         break
                     }
@@ -45,6 +48,7 @@ impl Locator for DirLocator {
     }
 }
 
+/*
 pub struct WalkDirLocator {
     root: PathBuf,
     depth: usize,
@@ -133,3 +137,5 @@ impl WalkDirLocator {
 //         Ok(rets)
 //     }
 // }
+
+*/

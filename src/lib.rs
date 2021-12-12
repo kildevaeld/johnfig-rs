@@ -3,6 +3,8 @@ mod config;
 mod encoder;
 mod error;
 mod locator;
+#[cfg(feature = "watch")]
+mod watch;
 
 pub use value::*;
 

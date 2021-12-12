@@ -5,7 +5,7 @@ use serde::Serialize;
 use std::{
     cmp::Ordering,
     collections::{BTreeMap, HashSet},
-    path::PathBuf,
+    path::{Path, PathBuf},
     sync::Arc,
 };
 
@@ -93,6 +93,10 @@ impl ConfigBuilder {
         self
     }
 
+    pub async fn build_config(self) -> Result<Config, Error> {
+        self.build()?.config().await
+    }
+
     pub fn build(self) -> Result<ConfigFinder, Error> {
         self.build_with(|ext| Context {
             ext: ext.to_string(),
@@ -145,14 +149,14 @@ impl ConfigBuilder {
     }
 }
 
-struct ConfigFinderInner {
+pub(crate) struct ConfigFinderInner {
     patterns: Vec<glob::Pattern>,
-    locators: Vec<Box<dyn Locator>>,
+    pub locators: Vec<Box<dyn Locator>>,
     loader: Arc<Loader<BTreeMap<String, Value>>>,
 }
 
 #[derive(Clone)]
-pub struct ConfigFinder(Arc<ConfigFinderInner>);
+pub struct ConfigFinder(pub(crate) Arc<ConfigFinderInner>);
 
 impl ConfigFinder {
     pub fn files<'a>(&'a self) -> impl Stream<Item = PathBuf> + 'a {
@@ -161,7 +165,7 @@ impl ConfigFinder {
 
     pub(crate) fn config_files<'a>(
         &'a self,
-    ) -> impl Stream<Item = Result<ConfigFile<BTreeMap<String, Value>>, Error>> + 'a {
+    ) -> impl Stream<Item = Result<ConfigFile<BTreeMap<String, Value>>, Error>> + 'a + Send {
         self.files().then(move |search_path| async move {
             let ext = match search_path.extension() {
                 Some(ext) => ext.to_string_lossy(),
@@ -193,6 +197,31 @@ impl ConfigFinder {
             inner: merge_config(configs),
             files,
         })
+    }
+
+    pub fn matches(&self, path: &Path) -> bool {
+        let path = path.file_name().unwrap();
+        for pattern in &self.0.patterns {
+            if pattern.matches_path(Path::new(path)) {
+                return true;
+            }
+        }
+        false
+    }
+
+    pub fn matche_any(&self, paths: &[PathBuf]) -> bool {
+        for path in paths {
+            if self.matches(path) {
+                return true;
+            }
+        }
+        false
+    }
+
+    #[cfg(feature = "watch")]
+    pub fn watch(&self) -> Result<impl Stream<Item = Result<Config, Error>> + Send, Error> {
+        use crate::watch::watch;
+        watch(self.clone())
     }
 }
 

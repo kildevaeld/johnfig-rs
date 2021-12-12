@@ -1,4 +1,4 @@
 {
-    "port": 2000,
-    "template_path": "templates"
+  "port": 2000,
+  "template_path": "templates"
 }

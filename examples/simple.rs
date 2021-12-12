@@ -1,4 +1,5 @@
-use johnfig::{value, ConfigBuilder, DirLocator, WalkDirLocator};
+use futures::{pin_mut, StreamExt, TryStreamExt};
+use johnfig::{value, ConfigBuilder, DirLocator};
 use serde::{Deserialize, Serialize};
 
 #[derive(Serialize, Deserialize, Debug)]
@@ -32,15 +33,20 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
                 })
             })?;
 
+        let watcher = finder.watch()?;
+        pin_mut!(watcher);
+        while let Some(cfg) = watcher.try_next().await? {
+            println!("Debug {:#?}", cfg);
+            break;
+        }
+
         finder.config().await
     })?;
 
-    // cfg.sort();
-
-    // cfg["database"] = value!({
-    //     "address": "http://github.com",
-    //     "user": "rasmus"
-    // });
+    cfg["database"] = value!({
+        "address": "http://github.com",
+        "user": "rasmus"
+    });
 
     println!("Debug {:#?}", cfg);
 
