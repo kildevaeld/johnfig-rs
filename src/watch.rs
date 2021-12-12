@@ -156,7 +156,7 @@ impl WatchableConfig {
         cfg.clone()
     }
 
-    pub fn watch(&self) -> impl Stream<Item = ()> + Send {
+    pub fn listen(&self) -> impl Stream<Item = ()> + Send {
         self.broadcast.clone()
     }
 }
