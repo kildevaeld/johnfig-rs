@@ -6,7 +6,7 @@ use futures::{
     pin_mut, SinkExt, Stream, StreamExt,
 };
 use notify::{Event, EventKind, RecommendedWatcher, RecursiveMode, Watcher};
-use value::Value;
+use value::{de::DeserializerError, Value};
 
 use crate::{Config, ConfigFinder, Error};
 
@@ -131,6 +131,14 @@ impl WatchableConfig {
 
     pub async fn get<K>(&self, name: impl AsRef<str>) -> Option<Value> {
         self.config.read().await.get(name).cloned()
+    }
+
+    pub async fn try_get<'a, S: serde::Deserialize<'a>>(
+        &self,
+        name: &str,
+    ) -> Result<S, DeserializerError> {
+        let cfg = self.config.read().await;
+        cfg.try_get(name)
     }
 
     pub async fn set(&self, name: impl ToString, value: impl Into<Value>) -> Option<Value> {

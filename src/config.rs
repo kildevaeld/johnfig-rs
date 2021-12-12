@@ -1,5 +1,5 @@
 use std::{collections::BTreeMap, path::PathBuf};
-use value::Value;
+use value::{de::DeserializerError, Value};
 
 #[derive(Debug, Default, Clone)]
 pub struct Config {
@@ -18,6 +18,13 @@ impl Config {
 
     pub fn get_mut<K>(&mut self, name: impl AsRef<str>) -> Option<&mut Value> {
         self.inner.get_mut(name.as_ref())
+    }
+
+    pub fn try_get<'a, S: serde::Deserialize<'a>>(
+        &self,
+        name: &str,
+    ) -> Result<S, DeserializerError> {
+        self.inner[name].clone().try_into()
     }
 
     pub fn set(&mut self, name: impl ToString, value: impl Into<Value>) -> Option<Value> {
