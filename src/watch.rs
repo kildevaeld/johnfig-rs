@@ -26,8 +26,6 @@ pub(crate) fn watch(finder: ConfigFinder) -> impl Stream<Item = Result<Config, E
     let stream = stream! {
         let (mut watcher, mut recv) = async_watcher().unwrap();
 
-        yield finder.config().await;
-
         let roots = finder.0.locators.iter().map(|l| l.root());
 
         for root in roots {
@@ -88,11 +86,14 @@ pub struct WatchableConfig {
 }
 
 impl WatchableConfig {
-    pub fn new<R: Runtime>(runtime: R, finder: ConfigFinder) -> WatchableConfig {
+    pub async fn new<R: Runtime>(runtime: R, finder: ConfigFinder) -> WatchableConfig {
         let (sx, rx) = broadcast(10);
         let (killsx, mut killrx) = oneshot();
+
+        let cfg = finder.config().await.unwrap_or_default();
+
         let cfg = WatchableConfig {
-            config: Arc::new(RwLock::new(Config::default())),
+            config: Arc::new(RwLock::new(cfg)),
             finder: finder.clone(),
             broadcast: rx,
             kill: Some(killsx),

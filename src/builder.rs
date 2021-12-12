@@ -225,11 +225,11 @@ impl ConfigFinder {
     }
 
     #[cfg(feature = "watch")]
-    pub fn watchable_config<R: runtime::Runtime>(
+    pub async fn watchable_config<R: runtime::Runtime>(
         &self,
         runtime: R,
     ) -> crate::watch::WatchableConfig {
-        crate::watch::WatchableConfig::new(runtime, self.clone())
+        crate::watch::WatchableConfig::new(runtime, self.clone()).await
     }
 }
 
