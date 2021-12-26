@@ -40,6 +40,7 @@ pub struct ConfigBuilder {
     search_paths: Vec<Box<dyn Locator>>,
     search_names: Vec<String>,
     sort: Option<Box<dyn FnMut(&PathBuf, &PathBuf) -> Ordering>>,
+    filter: Option<Box<dyn Fn(&PathBuf) -> bool + Send + Sync>>,
 }
 
 impl ConfigBuilder {
@@ -49,6 +50,7 @@ impl ConfigBuilder {
             search_paths: Vec::default(),
             search_names: Vec::default(),
             sort: None,
+            filter: None,
         }
     }
 
@@ -90,6 +92,14 @@ impl ConfigBuilder {
         sort: F,
     ) -> Self {
         self.sort = Some(Box::new(sort));
+        self
+    }
+
+    pub fn with_filter<F: 'static + Fn(&PathBuf) -> bool + Send + Sync>(
+        mut self,
+        filter: F,
+    ) -> Self {
+        self.filter = Some(Box::new(filter));
         self
     }
 
@@ -145,6 +155,7 @@ impl ConfigBuilder {
             patterns,
             locators: self.search_paths,
             loader,
+            filter: self.filter,
         })))
     }
 }
@@ -153,6 +164,7 @@ pub(crate) struct ConfigFinderInner {
     patterns: Vec<glob::Pattern>,
     pub locators: Vec<Box<dyn Locator>>,
     loader: Arc<Loader<BTreeMap<String, Value>>>,
+    filter: Option<Box<dyn Fn(&PathBuf) -> bool + Send + Sync>>,
 }
 
 #[derive(Clone)]
@@ -166,24 +178,36 @@ impl ConfigFinder {
     pub(crate) fn config_files<'a>(
         &'a self,
     ) -> impl Stream<Item = Result<ConfigFile<BTreeMap<String, Value>>, Error>> + 'a + Send {
-        self.files().then(move |search_path| async move {
-            let ext = match search_path.extension() {
-                Some(ext) => ext.to_string_lossy(),
-                None => {
-                    println!("no extension");
-                    "json".into()
+        self.files()
+            .filter_map(|search_path| async {
+                if let Some(filter) = &self.0.filter {
+                    if filter(&search_path) {
+                        Some(search_path)
+                    } else {
+                        None
+                    }
+                } else {
+                    Some(search_path)
                 }
-            };
-
-            let data = async_fs::read(&search_path).await?;
-
-            let out = self.0.loader.load(data, &ext)?;
-
-            Result::<_, Error>::Ok(ConfigFile {
-                config: out,
-                path: search_path,
             })
-        })
+            .then(move |search_path| async move {
+                let ext = match search_path.extension() {
+                    Some(ext) => ext.to_string_lossy(),
+                    None => {
+                        println!("no extension");
+                        "json".into()
+                    }
+                };
+
+                let data = async_fs::read(&search_path).await?;
+
+                let out = self.0.loader.load(data, &ext)?;
+
+                Result::<_, Error>::Ok(ConfigFile {
+                    config: out,
+                    path: search_path,
+                })
+            })
     }
 
     pub async fn config(&self) -> Result<Config, Error> {
