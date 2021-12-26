@@ -11,7 +11,7 @@ pub enum Error {
     #[error("serialize")]
     Serialize(#[from] SerializeError),
     #[error("unknonw error")]
-    Unknown(Box<dyn std::error::Error + Send>),
+    Unknown(Box<dyn std::error::Error + Send + Sync>),
 }
 
 #[derive(ThisError, Debug)]
