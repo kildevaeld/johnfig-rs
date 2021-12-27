@@ -39,7 +39,7 @@ pub struct ConfigBuilder {
     loader: LoaderBuilder<BTreeMap<String, Value>>,
     search_paths: Vec<Box<dyn Locator>>,
     search_names: Vec<String>,
-    sort: Option<Box<dyn FnMut(&PathBuf, &PathBuf) -> Ordering>>,
+    sort: Option<Box<dyn FnMut(&PathBuf, &PathBuf) -> Ordering + Send + Sync>>,
     filter: Option<Box<dyn Fn(&PathBuf) -> bool + Send + Sync>>,
 }
 
@@ -87,7 +87,7 @@ impl ConfigBuilder {
         self
     }
 
-    pub fn with_sorting<F: 'static + FnMut(&PathBuf, &PathBuf) -> Ordering>(
+    pub fn with_sorting<F: 'static + FnMut(&PathBuf, &PathBuf) -> Ordering + Send + Sync>(
         mut self,
         sort: F,
     ) -> Self {
