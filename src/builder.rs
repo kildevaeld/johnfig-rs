@@ -1,5 +1,5 @@
 use super::config::Config;
-use crate::{locator::Locator, DirLocator, Encoder, Error, Loader, LoaderBuilder};
+use crate::{locator::Locator, DirLocator, Error};
 use futures::{Stream, StreamExt, TryStreamExt};
 use serde::Serialize;
 use std::{
@@ -8,8 +8,9 @@ use std::{
     path::{Path, PathBuf},
     sync::Arc,
 };
+use toback::{Encoder, Toback, TobackBuilder};
 
-use value::{merge, Value};
+use value::{merge, Map, Value};
 
 #[derive(Clone, Debug)]
 pub struct ConfigFile<T> {
@@ -36,7 +37,7 @@ struct Context {
 }
 
 pub struct ConfigBuilder {
-    loader: LoaderBuilder<BTreeMap<String, Value>>,
+    loader: TobackBuilder<Map>,
     search_paths: Vec<Box<dyn Locator>>,
     search_names: Vec<String>,
     sort: Option<Box<dyn FnMut(&PathBuf, &PathBuf) -> Ordering + Send + Sync>>,
@@ -46,7 +47,7 @@ pub struct ConfigBuilder {
 impl ConfigBuilder {
     pub fn new() -> ConfigBuilder {
         ConfigBuilder {
-            loader: LoaderBuilder::new(),
+            loader: TobackBuilder::new(),
             search_paths: Vec::default(),
             search_names: Vec::default(),
             sort: None,
@@ -79,10 +80,7 @@ impl ConfigBuilder {
         self
     }
 
-    pub fn with_encoder<L: Encoder<BTreeMap<String, Value>> + 'static>(
-        mut self,
-        encoder: L,
-    ) -> Self {
+    pub fn with_encoder<L: Encoder<Map> + 'static>(mut self, encoder: L) -> Self {
         self.loader = self.loader.with_encoder(encoder);
         self
     }
@@ -163,7 +161,7 @@ impl ConfigBuilder {
 pub(crate) struct ConfigFinderInner {
     patterns: Vec<glob::Pattern>,
     pub locators: Vec<Box<dyn Locator>>,
-    loader: Arc<Loader<BTreeMap<String, Value>>>,
+    loader: Arc<Toback<Map>>,
     filter: Option<Box<dyn Fn(&PathBuf) -> bool + Send + Sync>>,
 }
 
@@ -177,7 +175,7 @@ impl ConfigFinder {
 
     pub(crate) fn config_files<'a>(
         &'a self,
-    ) -> impl Stream<Item = Result<ConfigFile<BTreeMap<String, Value>>, Error>> + 'a + Send {
+    ) -> impl Stream<Item = Result<ConfigFile<Map>, Error>> + 'a + Send {
         self.files()
             .filter_map(|search_path| async {
                 if let Some(filter) = &self.0.filter {
@@ -257,7 +255,7 @@ impl ConfigFinder {
     }
 }
 
-fn merge_config(files: Vec<ConfigFile<BTreeMap<String, Value>>>) -> BTreeMap<String, Value> {
+fn merge_config(files: Vec<ConfigFile<Map>>) -> BTreeMap<String, Value> {
     let mut config = BTreeMap::default();
 
     for file in files.into_iter() {

@@ -47,8 +47,6 @@ pub(crate) fn watch(finder: ConfigFinder) -> impl Stream<Item = Result<Config, E
             if let Some(l) = &last {
                 let diff = std::time::Instant::now().duration_since(last_time);
                 if l == &event && diff < std::time::Duration::from_millis(500) {
-
-                    println!("diff {:?}", diff);
                     continue;
                 }
             }

@@ -24,7 +24,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
             // .with_locator(WalkDirLocator::new(".")?.depth(1))
             .with_current_path()?
             .with_name_pattern("{name}.config.{ext}")
-            .with_name_pattern("0-{env}.{ext}")
+            .with_name_pattern("*-{env}.{ext}")
             .with_sorting(|a, b| a.cmp(b))
             .build_with(|ext| {
                 value!({
