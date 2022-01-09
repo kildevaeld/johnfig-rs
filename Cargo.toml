@@ -31,7 +31,7 @@ runtime = {git = "https://github.com/kildevaeld/runtime-rs", features = ["smol"]
 smol = "1"
 
 [features]
-default = []
+default = ["json"]
 
 watch = ["notify", "async-broadcast", "async-lock", "runtime"]
 
