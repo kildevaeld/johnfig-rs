@@ -1,5 +1,5 @@
 use std::{collections::BTreeMap, path::PathBuf};
-use value::{de::DeserializerError, Value};
+use value::{de::DeserializerError, merge, Value};
 
 #[derive(Debug, Default, Clone)]
 pub struct Config {
@@ -40,6 +40,17 @@ impl Config {
 
     pub fn contains(&self, name: impl AsRef<str>) -> bool {
         self.inner.contains_key(name.as_ref())
+    }
+
+    pub fn extend(&mut self, config: Config) {
+        for (key, value) in config.inner.into_iter() {
+            if !self.inner.contains_key(&key) {
+                self.inner.insert(key, value);
+            } else {
+                let mut prev = self.inner.get_mut(&key).unwrap();
+                merge(&mut prev, value);
+            }
+        }
     }
 }
 
