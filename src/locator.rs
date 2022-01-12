@@ -1,10 +1,11 @@
 use super::error::Error;
 use async_stream::try_stream;
 use async_trait::async_trait;
-use futures::{stream::BoxStream, StreamExt, TryStreamExt};
+use brunson::{Backend, BoxStream, DirEntry, FS};
+use futures_lite::{pin, StreamExt};
 use std::path::{Path, PathBuf};
 
-pub trait Locator: Send + Sync {
+pub trait Locator<B: Backend>: Send + Sync {
     fn root(&self) -> &PathBuf;
     fn locate<'a>(
         &'a self,
@@ -15,7 +16,7 @@ pub trait Locator: Send + Sync {
 pub struct DirLocator(pub PathBuf);
 
 #[async_trait]
-impl Locator for DirLocator {
+impl<B: Backend> Locator<B> for DirLocator {
     fn root(&self) -> &PathBuf {
         &self.0
     }
@@ -24,8 +25,10 @@ impl Locator for DirLocator {
         search_names: &'a [glob::Pattern],
     ) -> BoxStream<'a, Result<PathBuf, Error>> {
         try_stream! {
-            let mut readir = async_fs::read_dir(&self.0)
+            let readir = B::FS::read_dir(&self.0)
             .await?;
+
+            pin!(readir);
 
             while let Some(next) = readir.try_next().await? {
 

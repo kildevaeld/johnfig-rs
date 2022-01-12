@@ -22,7 +22,9 @@ fn async_watcher() -> notify::Result<(RecommendedWatcher, Receiver<notify::Resul
     Ok((watcher, rx))
 }
 
-pub(crate) fn watch(finder: ConfigFinder) -> impl Stream<Item = Result<Config, Error>> + Send {
+pub(crate) fn watch<B: Backend + 'static>(
+    finder: ConfigFinder<B>,
+) -> impl Stream<Item = Result<Config, Error>> + Send {
     let stream = stream! {
         let (mut watcher, mut recv) = async_watcher().unwrap();
 
@@ -72,19 +74,19 @@ pub(crate) fn watch(finder: ConfigFinder) -> impl Stream<Item = Result<Config, E
 
 use async_broadcast::{broadcast, Receiver as BroadcastReceiver, Sender};
 use async_lock::RwLock;
-use brunson::Runtime;
+use brunson::{Backend, Runtime};
 use futures::channel::oneshot::{channel as oneshot, Sender as KillSender};
 
 // #[derive(Clone)]
-pub struct WatchableConfig {
+pub struct WatchableConfig<B: Backend> {
     config: Arc<RwLock<Config>>,
-    finder: ConfigFinder,
+    finder: ConfigFinder<B>,
     broadcast: BroadcastReceiver<()>,
     kill: Option<KillSender<()>>,
 }
 
-impl WatchableConfig {
-    pub async fn new<R: Runtime>(runtime: R, finder: ConfigFinder) -> WatchableConfig {
+impl<B: Backend + 'static> WatchableConfig<B> {
+    pub async fn new<R: Runtime>(runtime: R, finder: ConfigFinder<B>) -> WatchableConfig<B> {
         let (sx, rx) = broadcast(10);
         let (killsx, mut killrx) = oneshot();
 
@@ -160,7 +162,7 @@ impl WatchableConfig {
     }
 }
 
-impl Drop for WatchableConfig {
+impl<B: Backend> Drop for WatchableConfig<B> {
     fn drop(&mut self) {
         self.kill.take().unwrap().send(()).ok();
     }

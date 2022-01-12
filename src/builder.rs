@@ -1,6 +1,7 @@
 use super::config::Config;
 use crate::{locator::Locator, DirLocator, Error};
-use futures::{Stream, StreamExt, TryStreamExt};
+use brunson::{Backend, FS};
+use futures_lite::{pin, Stream, StreamExt};
 use serde::Serialize;
 use std::{
     cmp::Ordering,
@@ -36,16 +37,16 @@ struct Context {
     ext: String,
 }
 
-pub struct ConfigBuilder {
+pub struct ConfigBuilder<B: Backend> {
     loader: TobackBuilder<Map>,
-    search_paths: Vec<Box<dyn Locator>>,
+    search_paths: Vec<Box<dyn Locator<B>>>,
     search_names: Vec<String>,
     sort: Option<Box<dyn FnMut(&PathBuf, &PathBuf) -> Ordering + Send + Sync>>,
     filter: Option<Box<dyn Fn(&PathBuf) -> bool + Send + Sync>>,
 }
 
-impl ConfigBuilder {
-    pub fn new() -> ConfigBuilder {
+impl<B: Backend + 'static> ConfigBuilder<B> {
+    pub fn new() -> ConfigBuilder<B> {
         ConfigBuilder {
             loader: TobackBuilder::new(),
             search_paths: Vec::default(),
@@ -75,7 +76,7 @@ impl ConfigBuilder {
         Ok(self.with_locator(DirLocator(path)))
     }
 
-    pub fn with_locator<L: Locator + 'static>(mut self, locator: L) -> Self {
+    pub fn with_locator<L: Locator<B> + 'static>(mut self, locator: L) -> Self {
         self.search_paths.push(Box::new(locator));
         self
     }
@@ -105,7 +106,7 @@ impl ConfigBuilder {
         self.build()?.config().await
     }
 
-    pub fn build(self) -> Result<ConfigFinder, Error> {
+    pub fn build(self) -> Result<ConfigFinder<B>, Error> {
         self.build_with(|ext| Context {
             ext: ext.to_string(),
         })
@@ -114,7 +115,7 @@ impl ConfigBuilder {
     pub fn build_with<C: Serialize, F: Fn(&str) -> C>(
         self,
         create_ctx: F,
-    ) -> Result<ConfigFinder, Error> {
+    ) -> Result<ConfigFinder<B>, Error> {
         let mut templates = tinytemplate::TinyTemplate::new();
 
         let search_names = self.search_names;
@@ -158,26 +159,31 @@ impl ConfigBuilder {
     }
 }
 
-pub(crate) struct ConfigFinderInner {
+pub(crate) struct ConfigFinderInner<B: Backend> {
     patterns: Vec<glob::Pattern>,
-    pub locators: Vec<Box<dyn Locator>>,
+    pub locators: Vec<Box<dyn Locator<B>>>,
     loader: Arc<Toback<Map>>,
     filter: Option<Box<dyn Fn(&PathBuf) -> bool + Send + Sync>>,
 }
 
-#[derive(Clone)]
-pub struct ConfigFinder(pub(crate) Arc<ConfigFinderInner>);
+pub struct ConfigFinder<B: Backend>(pub(crate) Arc<ConfigFinderInner<B>>);
 
-impl ConfigFinder {
+impl<B: Backend> Clone for ConfigFinder<B> {
+    fn clone(&self) -> Self {
+        ConfigFinder(self.0.clone())
+    }
+}
+
+impl<B: Backend + 'static> ConfigFinder<B> {
     pub fn files<'a>(&'a self) -> impl Stream<Item = PathBuf> + 'a {
-        find_files(&self.0.locators, &self.0.patterns).filter_map(|ret| async move { ret.ok() })
+        find_files(&self.0.locators, &self.0.patterns).filter_map(|ret| ret.ok())
     }
 
     pub(crate) fn config_files<'a>(
         &'a self,
     ) -> impl Stream<Item = Result<ConfigFile<Map>, Error>> + 'a + Send {
         self.files()
-            .filter_map(|search_path| async {
+            .filter_map(|search_path| {
                 if let Some(filter) = &self.0.filter {
                     if filter(&search_path) {
                         Some(search_path)
@@ -197,7 +203,7 @@ impl ConfigFinder {
                     }
                 };
 
-                let data = async_fs::read(&search_path).await?;
+                let data = B::FS::read(&search_path).await?;
 
                 let out = self.0.loader.load(data, &ext)?;
 
@@ -209,7 +215,15 @@ impl ConfigFinder {
     }
 
     pub async fn config(&self) -> Result<Config, Error> {
-        let mut configs = self.config_files().try_collect::<Vec<_>>().await?;
+        // let mut configs = self.config_files().collect::<Vec<_>>().await?;
+        let mut configs = Vec::default();
+
+        let stream = self.config_files();
+        pin!(stream);
+
+        while let Some(config) = stream.next().await {
+            configs.push(config?);
+        }
 
         configs.sort_by(|a, b| a.path.cmp(&b.path));
 
@@ -250,8 +264,8 @@ impl ConfigFinder {
     pub async fn watchable_config<R: brunson::Runtime>(
         &self,
         runtime: R,
-    ) -> crate::watch::WatchableConfig {
-        crate::watch::WatchableConfig::new(runtime, self.clone()).await
+    ) -> crate::watch::WatchableConfig<B> {
+        crate::watch::WatchableConfig::<B>::new(runtime, self.clone()).await
     }
 }
 
@@ -272,20 +286,25 @@ fn merge_config(files: Vec<ConfigFile<Map>>) -> BTreeMap<String, Value> {
     config
 }
 
-pub fn find_files<'a>(
-    locators: &'a [Box<dyn Locator>],
+pub fn find_files<'a, B: Backend>(
+    locators: &'a [Box<dyn Locator<B>>],
     patterns: &'a [glob::Pattern],
 ) -> impl Stream<Item = Result<std::path::PathBuf, Error>> + 'a {
     let mut seen = HashSet::<PathBuf>::default();
-    futures::stream::iter(locators.iter())
+    futures_lite::stream::iter(locators.iter())
         .then(move |search_path| async move { search_path.locate(patterns) })
         .flatten()
-        .try_filter_map(move |val| {
+        .filter_map(move |val| {
+            let val = match val {
+                Ok(val) => val,
+                Err(err) => return Some(Err(err)),
+            };
+
             if seen.contains(&val) {
-                futures::future::ok(None)
+                None
             } else {
                 seen.insert(val.clone());
-                futures::future::ok(Some(val))
+                Some(Ok(val))
             }
         })
 }

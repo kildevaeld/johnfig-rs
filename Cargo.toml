@@ -5,24 +5,22 @@ name = "johnfig"
 version = "0.1.0"
 
 [dependencies]
-async-fs = "1"
 async-stream = "0.3"
 async-trait = "0.1"
-blocking = "1"
-futures = {version = "0.3"}
+futures-lite = {version = "1"}
 glob = "0.3"
 log = "0.4"
 serde = {version = "1", default-features = false, features = ["derive"]}
 thiserror = "1"
 tinytemplate = "1"
-value = {git = "https://github.com/kildevaeld/value-rs", features = ["std", "serde"]}
-
 toback = {git = "https://github.com/kildevaeld/toback-rs"}
+value = {git = "https://github.com/kildevaeld/value-rs", features = ["std", "serde"]}
 
 # Notify
 async-broadcast = {version = "0.3", optional = true}
 async-lock = {version = "2", optional = true}
 brunson = {git = "https://github.com/kildevaeld/runtime-rs"}
+futures = {version = "0.3", optional = true}
 notify = {version = "5.0.0-pre.13", optional = true}
 
 [dev-dependencies]
@@ -31,9 +29,8 @@ pretty_env_logger = "0.4"
 tokio = {version = "1", features = ["macros", "rt", "rt-multi-thread"]}
 
 [features]
-default = ["json", "watch"]
-
-watch = ["notify", "async-broadcast", "async-lock"]
+default = ["json"]
+watch = ["notify", "async-broadcast", "async-lock", "futures"]
 
 all_formats = ["toback/full"]
 
