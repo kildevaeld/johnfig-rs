@@ -247,7 +247,7 @@ impl ConfigFinder {
     }
 
     #[cfg(feature = "watch")]
-    pub async fn watchable_config<R: runtime::Runtime>(
+    pub async fn watchable_config<R: brunson::Runtime>(
         &self,
         runtime: R,
     ) -> crate::watch::WatchableConfig {

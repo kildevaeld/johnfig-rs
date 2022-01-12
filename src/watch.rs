@@ -72,8 +72,8 @@ pub(crate) fn watch(finder: ConfigFinder) -> impl Stream<Item = Result<Config, E
 
 use async_broadcast::{broadcast, Receiver as BroadcastReceiver, Sender};
 use async_lock::RwLock;
+use brunson::Runtime;
 use futures::channel::oneshot::{channel as oneshot, Sender as KillSender};
-use runtime::Runtime;
 
 // #[derive(Clone)]
 pub struct WatchableConfig {

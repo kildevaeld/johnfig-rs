@@ -34,7 +34,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
                 })
             })?;
 
-        let mut watcher = finder.watchable_config(runtime::SmolGlobalRuntime).await;
+        let mut watcher = finder.watchable_config(Tokio::runtime()).await;
 
         while let Some(_) = watcher.listen().next().await {
             println!("config changed: {:?}", watcher.snapshot().await);
