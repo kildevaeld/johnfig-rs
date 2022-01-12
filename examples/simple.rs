@@ -1,3 +1,4 @@
+use brunson::{Backend, Tokio};
 use futures::{pin_mut, StreamExt, TryStreamExt};
 use johnfig::{value, ConfigBuilder, DirLocator, Error};
 use notify::Watcher;
@@ -15,10 +16,11 @@ pub struct Context<'a> {
     name: &'a str,
 }
 
-fn main() -> Result<(), Box<dyn std::error::Error>> {
+#[tokio::main]
+async fn main() -> Result<(), Box<dyn std::error::Error>> {
     pretty_env_logger::init();
 
-    let mut cfg = smol::block_on(async move {
+    let mut cfg = {
         let finder = ConfigBuilder::new()
             .with_search_path("./examples")?
             // .with_locator(WalkDirLocator::new(".")?.depth(1))
@@ -41,7 +43,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         }
 
         Result::<_, Error>::Ok(watcher.snapshot().await)
-    })?;
+    }?;
 
     cfg["database"] = value!({
         "address": "http://github.com",

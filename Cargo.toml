@@ -22,18 +22,18 @@ toback = {git = "https://github.com/kildevaeld/toback-rs"}
 # Notify
 async-broadcast = {version = "0.3", optional = true}
 async-lock = {version = "2", optional = true}
-brunson = {git = "https://github.com/kildevaeld/runtime-rs", optional = true}
+brunson = {git = "https://github.com/kildevaeld/runtime-rs"}
 notify = {version = "5.0.0-pre.13", optional = true}
 
 [dev-dependencies]
-brunson = {git = "https://github.com/kildevaeld/runtime-rs", features = ["smol"]}
+brunson = {git = "https://github.com/kildevaeld/runtime-rs", features = ["tokio"]}
 pretty_env_logger = "0.4"
-smol = "1"
+tokio = {version = "1", features = ["macros", "rt", "rt-multi-thread"]}
 
 [features]
 default = ["json", "watch"]
 
-watch = ["notify", "async-broadcast", "async-lock", "brunson"]
+watch = ["notify", "async-broadcast", "async-lock"]
 
 all_formats = ["toback/full"]
 
