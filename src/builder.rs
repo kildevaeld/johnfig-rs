@@ -145,10 +145,14 @@ impl<B: Backend + 'static> ConfigBuilder<B> {
             .flatten()
             .collect::<Result<Vec<_>, Error>>()?;
 
+        log::debug!("using search names: {:?}", search_names);
+
         let patterns = search_names
             .iter()
             .map(|p| glob::Pattern::new(p).unwrap())
             .collect::<Vec<_>>();
+
+        log::debug!("using search patterns: {:?}", search_names);
 
         Ok(ConfigFinder(Arc::new(ConfigFinderInner {
             patterns,
@@ -206,6 +210,8 @@ impl<B: Backend + 'static> ConfigFinder<B> {
                 let data = B::FS::read(&search_path).await?;
 
                 let out = self.0.loader.load(data, &ext)?;
+
+                log::trace!("found path: {:?}", search_path);
 
                 Result::<_, Error>::Ok(ConfigFile {
                     config: out,

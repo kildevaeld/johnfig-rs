@@ -21,7 +21,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     pretty_env_logger::init();
 
     let mut cfg = {
-        let finder = ConfigBuilder::new()
+        let finder = ConfigBuilder::<Tokio>::new()
             .with_search_path("./examples")?
             // .with_locator(WalkDirLocator::new(".")?.depth(1))
             .with_current_path()?
@@ -38,9 +38,11 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
         let mut watcher = finder.watchable_config(Tokio::runtime()).await;
 
-        while let Some(_) = watcher.listen().next().await {
-            println!("config changed: {:?}", watcher.snapshot().await);
-        }
+        // watcher.snapshot().await;
+
+        // while let Some(_) = watcher.listen().next().await {
+        //     println!("config changed: {:?}", watcher.snapshot().await);
+        // }
 
         Result::<_, Error>::Ok(watcher.snapshot().await)
     }?;
