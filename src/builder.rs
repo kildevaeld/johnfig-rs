@@ -48,7 +48,7 @@ pub struct ConfigBuilder<B: Backend> {
 impl<B: Backend + 'static> ConfigBuilder<B> {
     pub fn new() -> ConfigBuilder<B> {
         ConfigBuilder {
-            loader: TobackBuilder::new(),
+            loader: TobackBuilder::default(),
             search_paths: Vec::default(),
             search_names: Vec::default(),
             sort: None,
@@ -82,7 +82,7 @@ impl<B: Backend + 'static> ConfigBuilder<B> {
     }
 
     pub fn with_encoder<L: Encoder<Map> + 'static>(mut self, encoder: L) -> Self {
-        self.loader = self.loader.with_encoder(encoder);
+        self.loader = self.loader.encoder(encoder);
         self
     }
 
@@ -128,6 +128,8 @@ impl<B: Backend + 'static> ConfigBuilder<B> {
 
         let loader = Arc::new(self.loader.build());
 
+        log::debug!("loaders registered: {:?}", loader.extensions());
+
         let search_names = loader
             .extensions()
             .iter()
@@ -151,8 +153,6 @@ impl<B: Backend + 'static> ConfigBuilder<B> {
             .iter()
             .map(|p| glob::Pattern::new(p).unwrap())
             .collect::<Vec<_>>();
-
-        log::debug!("using search patterns: {:?}", search_names);
 
         Ok(ConfigFinder(Arc::new(ConfigFinderInner {
             patterns,
@@ -209,7 +209,7 @@ impl<B: Backend + 'static> ConfigFinder<B> {
 
                 let data = B::FS::read(&search_path).await?;
 
-                let out = self.0.loader.load(data, &ext)?;
+                let out = self.0.loader.load(&data, &ext)?;
 
                 log::trace!("found path: {:?}", search_path);
 
