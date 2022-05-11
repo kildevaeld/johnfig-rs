@@ -17,9 +17,9 @@ toback = {git = "https://github.com/kildevaeld/toback-rs"}
 value = {git = "https://github.com/kildevaeld/value-rs", features = ["std", "serde"]}
 
 # Notify
-async-broadcast = {version = "0.3", optional = true}
+async-broadcast = {version = "0.4", optional = true}
 async-lock = {version = "2", optional = true}
-brunson = {git = "https://github.com/kildevaeld/runtime-rs"}
+brunson = {git = "https://github.com/kildevaeld/runtime-rs", features = ["fs"]}
 futures = {version = "0.3", optional = true}
 notify = {version = "5.0.0-pre.13", optional = true}
 

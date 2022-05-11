@@ -72,7 +72,7 @@ pub(crate) fn watch<B: Backend + 'static>(
     stream
 }
 
-use async_broadcast::{broadcast, Receiver as BroadcastReceiver, Sender};
+use async_broadcast::{broadcast, Receiver as BroadcastReceiver};
 use async_lock::RwLock;
 use brunson::{Backend, Runtime};
 use futures::channel::oneshot::{channel as oneshot, Sender as KillSender};
@@ -80,6 +80,7 @@ use futures::channel::oneshot::{channel as oneshot, Sender as KillSender};
 // #[derive(Clone)]
 pub struct WatchableConfig<B: Backend> {
     config: Arc<RwLock<Config>>,
+    #[allow(unused)]
     finder: ConfigFinder<B>,
     broadcast: BroadcastReceiver<()>,
     kill: Option<KillSender<()>>,
