@@ -16,3 +16,5 @@ pub use self::{
 
 #[cfg(feature = "watch")]
 pub use watch::WatchableConfig;
+
+pub use brunson;
