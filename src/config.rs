@@ -1,5 +1,6 @@
+use serde::de::Deserialize;
 use std::{collections::BTreeMap, path::PathBuf};
-use value::{de::DeserializerError, merge, Value};
+use value::{de::DeserializerError, merge, Map, Value};
 
 #[derive(Debug, Default, Clone)]
 pub struct Config {
@@ -51,6 +52,10 @@ impl Config {
                 merge(&mut prev, value);
             }
         }
+    }
+
+    pub fn try_into<'de, T: serde::Deserialize<'de>>(self) -> Result<T, DeserializerError> {
+        Value::Map(self.inner.into()).try_into()
     }
 }
 
