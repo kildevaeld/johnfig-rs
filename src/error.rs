@@ -4,13 +4,13 @@ use toback::Error as TobackError;
 pub enum Error {
     #[error("unknown format")]
     UnknownFormat(String),
-    #[error("io")]
+    #[error("io: {0}")]
     Io(#[from] std::io::Error),
     #[error("config not found")]
     NotFound,
-    #[error("serialize")]
+    #[error("serialize: {0}")]
     Serialize(#[from] TobackError),
-    #[error("unknonw error")]
+    #[error("unknown error: {0}")]
     Unknown(Box<dyn std::error::Error + Send + Sync>),
 }
 
