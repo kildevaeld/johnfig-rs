@@ -183,7 +183,7 @@ impl<B: Backend + 'static> ConfigFinder<B> {
         find_files(&self.0.locators, &self.0.patterns).filter_map(|ret| ret.ok())
     }
 
-    pub(crate) fn config_files<'a>(
+    pub fn config_files<'a>(
         &'a self,
     ) -> impl Stream<Item = Result<ConfigFile<Map>, Error>> + 'a + Send {
         self.files()
