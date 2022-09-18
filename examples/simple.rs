@@ -1,7 +1,4 @@
-use brunson::{Backend, Tokio};
-use futures::{pin_mut, StreamExt, TryStreamExt};
-use johnfig::{value, ConfigBuilder, DirLocator, Error};
-use notify::Watcher;
+use johnfig::{value, ConfigBuilder, DirWalkLocator, Error};
 use serde::{Deserialize, Serialize};
 
 #[derive(Serialize, Deserialize, Debug)]
@@ -16,18 +13,16 @@ pub struct Context<'a> {
     name: &'a str,
 }
 
-#[tokio::main]
-async fn main() -> Result<(), Box<dyn std::error::Error>> {
+fn main() -> Result<(), Box<dyn std::error::Error>> {
     pretty_env_logger::init();
 
-    let mut cfg = {
-        let finder = ConfigBuilder::<Tokio>::new()
-            .with_search_path("./examples")?
-            // .with_locator(WalkDirLocator::new(".")?.depth(1))
+    let cfg = {
+        let finder = ConfigBuilder::new()
+            .with_locator(DirWalkLocator::new("./examples".into(), 2)?)
             .with_current_path()?
             .with_name_pattern("{name}.config.{ext}")
             .with_name_pattern("*-{env}.{ext}")
-            .with_sorting(|a, b| a.cmp(b))
+            .with_sorting(|a, b| b.cmp(a))
             .build_with(|ext| {
                 value!({
                     "ext": ext,
@@ -36,21 +31,13 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                 })
             })?;
 
-        let mut watcher = finder.watchable_config(Tokio::runtime()).await;
-
-        // watcher.snapshot().await;
-
-        // while let Some(_) = watcher.listen().next().await {
-        //     println!("config changed: {:?}", watcher.snapshot().await);
-        // }
-
-        Result::<_, Error>::Ok(watcher.snapshot().await)
+        finder.config()
     }?;
 
-    cfg["database"] = value!({
-        "address": "http://github.com",
-        "user": "rasmus"
-    });
+    // cfg["database"] = value!({
+    //     "address": "http://github.com",
+    //     "user": "rasmus"
+    // });
 
     println!("Debug {:#?}", cfg);
 

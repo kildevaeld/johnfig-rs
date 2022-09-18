@@ -2,19 +2,12 @@ mod builder;
 mod config;
 mod error;
 mod locator;
-#[cfg(feature = "watch")]
-mod watch;
-
-pub use value::*;
 
 pub use self::{
     builder::{ConfigBuilder, ConfigFinder},
-    config::*,
-    error::*,
-    locator::*,
+    config::Config,
+    error::Error,
+    locator::{DirLocator, DirWalkLocator, Locator},
 };
 
-#[cfg(feature = "watch")]
-pub use watch::WatchableConfig;
-
-pub use brunson;
+pub use value::{value, Value};
