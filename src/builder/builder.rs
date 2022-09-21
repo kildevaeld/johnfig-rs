@@ -41,6 +41,11 @@ impl ConfigBuilder {
         }
     }
 
+    pub fn add_name_pattern(&mut self, pattern: impl ToString) -> &mut Self {
+        self.search_names.push(pattern.to_string());
+        self
+    }
+
     pub fn with_name_pattern(mut self, pattern: impl ToString) -> Self {
         self.search_names.push(pattern.to_string());
         self
@@ -61,6 +66,16 @@ impl ConfigBuilder {
         Ok(self.with_locator(DirLocator(path)))
     }
 
+    pub fn add_search_path(&mut self, path: impl Into<PathBuf>) -> Result<&mut Self, Error> {
+        let mut path = path.into();
+
+        if !path.is_absolute() {
+            path = path.canonicalize()?;
+        }
+
+        Ok(self.add_locator(DirLocator(path)))
+    }
+
     pub fn with_locator<L: Locator + 'static>(mut self, locator: L) -> Self
     where
         L::Error: std::error::Error + 'static,
@@ -70,8 +85,22 @@ impl ConfigBuilder {
         self
     }
 
+    pub fn add_locator<L: Locator + 'static>(&mut self, locator: L) -> &mut Self
+    where
+        L::Error: std::error::Error + 'static,
+        L: Send + Sync,
+    {
+        self.search_paths.push(locatorbox(locator));
+        self
+    }
+
     pub fn with_encoder<L: Encoder<Map> + 'static>(mut self, encoder: L) -> Self {
-        self.loader = self.loader.encoder(encoder);
+        self.loader.add_encoder(encoder);
+        self
+    }
+
+    pub fn add_encoder<L: Encoder<Map> + 'static>(&mut self, encoder: L) -> &mut Self {
+        self.loader.add_encoder(encoder);
         self
     }
 
@@ -83,10 +112,26 @@ impl ConfigBuilder {
         self
     }
 
+    pub fn set_sorting<F: 'static + Fn(&PathBuf, &PathBuf) -> Ordering + Send + Sync>(
+        &mut self,
+        sort: F,
+    ) -> &mut Self {
+        self.sort = Some(Box::new(sort));
+        self
+    }
+
     pub fn with_filter<F: 'static + Fn(&PathBuf) -> bool + Send + Sync>(
         mut self,
         filter: F,
     ) -> Self {
+        self.filter = Some(Box::new(filter));
+        self
+    }
+
+    pub fn set_filter<F: 'static + Fn(&PathBuf) -> bool + Send + Sync>(
+        &mut self,
+        filter: F,
+    ) -> &mut Self {
         self.filter = Some(Box::new(filter));
         self
     }
