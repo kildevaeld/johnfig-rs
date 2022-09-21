@@ -136,7 +136,7 @@ impl ConfigBuilder {
         self
     }
 
-    pub async fn build_config(self) -> Result<Config, Error> {
+    pub fn build_config(self) -> Result<Config, Error> {
         self.build()?.config()
     }
 
