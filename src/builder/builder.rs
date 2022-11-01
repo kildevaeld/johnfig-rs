@@ -94,11 +94,25 @@ impl ConfigBuilder {
         self
     }
 
+    #[cfg(feature = "send")]
+    pub fn with_encoder<L: Encoder<Map> + Send + 'static>(mut self, encoder: L) -> Self {
+        self.loader.add_encoder(encoder);
+        self
+    }
+
+    #[cfg(not(feature = "send"))]
     pub fn with_encoder<L: Encoder<Map> + 'static>(mut self, encoder: L) -> Self {
         self.loader.add_encoder(encoder);
         self
     }
 
+    #[cfg(feature = "send")]
+    pub fn add_encoder<L: Encoder<Map> + Send + 'static>(&mut self, encoder: L) -> &mut Self {
+        self.loader.add_encoder(encoder);
+        self
+    }
+
+    #[cfg(not(feature = "send"))]
     pub fn add_encoder<L: Encoder<Map> + 'static>(&mut self, encoder: L) -> &mut Self {
         self.loader.add_encoder(encoder);
         self

@@ -35,3 +35,5 @@ json = ["toback/json"]
 ron = ["toback/ron"]
 toml = ["toback/toml"]
 yaml = ["toback/yaml"]
+
+send = []
