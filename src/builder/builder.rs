@@ -94,26 +94,12 @@ impl ConfigBuilder {
         self
     }
 
-    #[cfg(feature = "send")]
     pub fn with_encoder<L: Encoder<Map> + Send + 'static>(mut self, encoder: L) -> Self {
         self.loader.add_encoder(encoder);
         self
     }
 
-    #[cfg(not(feature = "send"))]
-    pub fn with_encoder<L: Encoder<Map> + 'static>(mut self, encoder: L) -> Self {
-        self.loader.add_encoder(encoder);
-        self
-    }
-
-    #[cfg(feature = "send")]
     pub fn add_encoder<L: Encoder<Map> + Send + 'static>(&mut self, encoder: L) -> &mut Self {
-        self.loader.add_encoder(encoder);
-        self
-    }
-
-    #[cfg(not(feature = "send"))]
-    pub fn add_encoder<L: Encoder<Map> + 'static>(&mut self, encoder: L) -> &mut Self {
         self.loader.add_encoder(encoder);
         self
     }
@@ -303,20 +289,6 @@ impl ConfigFinder {
             }
         }
         false
-    }
-
-    #[cfg(feature = "watch")]
-    pub fn watch(&self) -> impl Stream<Item = Result<Config, Error>> + Send {
-        use crate::watch::watch;
-        watch(self.clone())
-    }
-
-    #[cfg(feature = "watch")]
-    pub async fn watchable_config<R: brunson::Runtime>(
-        &self,
-        runtime: R,
-    ) -> crate::watch::WatchableConfig<B> {
-        crate::watch::WatchableConfig::<B>::new(runtime, self.clone()).await
     }
 }
 

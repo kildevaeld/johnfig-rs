@@ -1,5 +1,5 @@
 use std::{collections::BTreeMap, path::PathBuf};
-use value::{de::DeserializerError, merge, Value};
+use value::{merge, Value};
 
 #[derive(Debug, Default, Clone)]
 pub struct Config {
@@ -20,14 +20,15 @@ impl Config {
         self.inner.get_mut(name.as_ref())
     }
 
+    #[cfg(feature = "serde")]
     pub fn try_get<'a, S: serde::Deserialize<'a>>(
         &self,
         name: &str,
-    ) -> Result<S, DeserializerError> {
+    ) -> Result<S, value::de::DeserializerError> {
         if let Some(v) = self.inner.get(name).cloned() {
             v.try_into()
         } else {
-            Err(DeserializerError::Custom(format!(
+            Err(value::de::DeserializerError::Custom(format!(
                 "field not found: {}",
                 name
             )))
@@ -53,7 +54,10 @@ impl Config {
         }
     }
 
-    pub fn try_into<'de, T: serde::Deserialize<'de>>(self) -> Result<T, DeserializerError> {
+    #[cfg(feature = "serde")]
+    pub fn try_into<'de, T: serde::Deserialize<'de>>(
+        self,
+    ) -> Result<T, value::de::DeserializerError> {
         Value::Map(self.inner.into()).try_into()
     }
 }
@@ -76,6 +80,7 @@ impl<S: AsRef<str>> std::ops::IndexMut<S> for Config {
     }
 }
 
+#[cfg(feature = "serde")]
 impl serde::Serialize for Config {
     fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
     where
@@ -85,6 +90,7 @@ impl serde::Serialize for Config {
     }
 }
 
+#[cfg(feature = "serde")]
 impl<'de> serde::Deserialize<'de> for Config {
     fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
     where

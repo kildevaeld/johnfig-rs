@@ -5,35 +5,51 @@ name = "johnfig"
 version = "0.1.0"
 
 [dependencies]
-glob = "0.3"
-log = "0.4"
-pathdiff = "0.2"
-serde = {version = "1", default-features = false, features = ["derive"]}
-thiserror = "1"
-tinytemplate = "1"
-toback = {git = "https://github.com/kildevaeld/toback-rs"}
-value = {git = "https://github.com/kildevaeld/value-rs", features = ["std", "serde"]}
-walkdir = "2"
+value = { git = "https://github.com/kildevaeld/value-rs", features = ["std"] }
 
-# Notify
-async-broadcast = {version = "0.4", optional = true}
-async-lock = {version = "2", optional = true}
-futures = {version = "0.3", optional = true}
-notify = {version = "5.0.0-pre.13", optional = true}
+glob = { version = "0.3", optional = true }
+log = { version = "0.4", optional = true }
+pathdiff = { version = "0.2", optional = true }
+thiserror = { version = "1", optional = true }
+tinytemplate = { version = "1", optional = true }
+toback = { git = "https://github.com/kildevaeld/toback-rs", features = [
+    "send",
+], optional = true }
+walkdir = { version = "2", optional = true }
+
+serde = { version = "1", default-features = false, features = [
+    "derive",
+], optional = true }
 
 [dev-dependencies]
 pretty_env_logger = "0.4"
 
 [features]
-default = ["json"]
-watch = ["notify", "async-broadcast", "async-lock", "futures"]
+default = ["json", "builder"]
 
-all_formats = ["toback/full"]
+serde = ["dep:serde", "value/serde"]
 
-gura = ["toback/gura"]
-json = ["toback/json"]
-ron = ["toback/ron"]
-toml = ["toback/toml"]
-yaml = ["toback/yaml"]
+builder = [
+    "dep:glob",
+    "dep:pathdiff",
+    "dep:thiserror",
+    "dep:tinytemplate",
+    "dep:toback",
+    "dep:walkdir",
+    "dep:log",
+    "serde",
+]
 
-send = ["toback/send"]
+all_formats = ["toback?/full"]
+
+gura = ["toback?/gura"]
+json = ["toback?/json"]
+ron = ["toback?/ron"]
+toml = ["toback?/toml"]
+yaml = ["toback?/yaml"]
+
+
+[[example]]
+name = "simple"
+path = "examples/simple.rs"
+required-features = ["builder"]
