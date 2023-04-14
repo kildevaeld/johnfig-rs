@@ -4,6 +4,31 @@ edition = "2021"
 name = "johnfig"
 version = "0.1.0"
 
+
+[features]
+default = []
+
+serde = ["dep:serde", "value/serde"]
+
+builder = [
+    "dep:glob",
+    "dep:pathdiff",
+    "dep:thiserror",
+    "dep:tinytemplate",
+    "dep:toback",
+    "dep:walkdir",
+    "dep:log",
+    "serde",
+]
+
+all_formats = ["toback?/full"]
+gura = ["toback?/gura"]
+json = ["toback?/json"]
+ron = ["toback?/ron"]
+toml = ["toback?/toml"]
+yaml = ["toback?/yaml"]
+
+
 [dependencies]
 value = { git = "https://github.com/kildevaeld/value-rs", features = ["std"] }
 
@@ -21,32 +46,9 @@ serde = { version = "1", default-features = false, features = [
     "derive",
 ], optional = true }
 
+
 [dev-dependencies]
 pretty_env_logger = "0.4"
-
-[features]
-default = ["json", "builder"]
-
-serde = ["dep:serde", "value/serde"]
-
-builder = [
-    "dep:glob",
-    "dep:pathdiff",
-    "dep:thiserror",
-    "dep:tinytemplate",
-    "dep:toback",
-    "dep:walkdir",
-    "dep:log",
-    "serde",
-]
-
-all_formats = ["toback?/full"]
-
-gura = ["toback?/gura"]
-json = ["toback?/json"]
-ron = ["toback?/ron"]
-toml = ["toback?/toml"]
-yaml = ["toback?/yaml"]
 
 
 [[example]]
