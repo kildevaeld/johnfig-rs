@@ -27,7 +27,7 @@ json = ["toback?/json"]
 ron = ["toback?/ron"]
 toml = ["toback?/toml"]
 yaml = ["toback?/yaml"]
-
+lua = ["toback?/lua"]
 
 [dependencies]
 value = { git = "https://github.com/kildevaeld/value-rs", features = ["std"] }

@@ -28,6 +28,7 @@ pub struct ConfigBuilder {
     search_names: Vec<String>,
     sort: Option<Box<dyn Fn(&PathBuf, &PathBuf) -> Ordering + Send + Sync>>,
     filter: Option<Box<dyn Fn(&PathBuf) -> bool + Send + Sync>>,
+    default: Option<Box<dyn Fn(&mut Config) + Send + Sync>>,
 }
 
 impl ConfigBuilder {
@@ -38,7 +39,24 @@ impl ConfigBuilder {
             search_names: Vec::default(),
             sort: None,
             filter: None,
+            default: None,
         }
+    }
+
+    pub fn add_default<F>(&mut self, default: F) -> &mut Self
+    where
+        F: Fn(&mut Config) + Send + Sync + 'static,
+    {
+        self.default = Some(Box::new(default));
+        self
+    }
+
+    pub fn with_default<F>(mut self, default: F) -> Self
+    where
+        F: Fn(&mut Config) + Send + Sync + 'static,
+    {
+        self.add_default(default);
+        self
     }
 
     pub fn add_name_pattern(&mut self, pattern: impl ToString) -> &mut Self {
@@ -194,6 +212,7 @@ impl ConfigBuilder {
             loader,
             filter: self.filter,
             sorter: self.sort,
+            default: self.default,
         })))
     }
 }
@@ -204,6 +223,7 @@ pub(crate) struct ConfigFinderInner {
     loader: Arc<Toback<Map>>,
     filter: Option<Box<dyn Fn(&PathBuf) -> bool + Send + Sync>>,
     sorter: Option<Box<dyn Fn(&PathBuf, &PathBuf) -> Ordering + Send + Sync>>,
+    default: Option<Box<dyn Fn(&mut Config) + Send + Sync>>,
 }
 
 #[derive(Clone)]
@@ -257,8 +277,14 @@ impl ConfigFinder {
 
         let files = configs.iter().map(|m| m.path.clone()).collect();
 
+        let mut config = Config::default();
+
+        if let Some(default) = &self.0.default {
+            default(&mut config);
+        }
+
         Ok(Config {
-            inner: merge_config(configs),
+            inner: merge_config(config.inner, configs),
             files,
         })
     }
@@ -283,9 +309,10 @@ impl ConfigFinder {
     }
 }
 
-fn merge_config(files: Vec<ConfigFile<Map>>) -> BTreeMap<String, Value> {
-    let mut config = BTreeMap::default();
-
+fn merge_config(
+    mut config: BTreeMap<String, Value>,
+    files: Vec<ConfigFile<Map>>,
+) -> BTreeMap<String, Value> {
     for file in files.into_iter() {
         for (key, value) in file.config.into_iter() {
             if !config.contains_key(&key) {

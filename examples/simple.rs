@@ -23,6 +23,12 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
             .with_name_pattern("{name}.config.{ext}")
             .with_name_pattern("*-{env}.{ext}")
             .with_sorting(|a, b| b.cmp(a))
+            .with_default(|cfg| {
+                cfg["database"] = value!({
+                    "address": "http://github.com",
+                    "user": "rasmus"
+                });
+            })
             .build_with(|ext| {
                 value!({
                     "ext": ext,
@@ -33,11 +39,6 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 
         finder.config()
     }?;
-
-    cfg["database"] = value!({
-        "address": "http://github.com",
-        "user": "rasmus"
-    });
 
     println!("Debug {:#?}", cfg);
 
