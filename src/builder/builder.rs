@@ -230,10 +230,7 @@ impl ConfigFinder {
             .map(move |search_path| {
                 let ext = match search_path.extension() {
                     Some(ext) => ext.to_string_lossy(),
-                    None => {
-                        println!("no extension");
-                        "json".into()
-                    }
+                    None => "json".into(),
                 };
 
                 let data = std::fs::read(&search_path)?;
@@ -250,13 +247,7 @@ impl ConfigFinder {
     }
 
     pub fn config(&self) -> Result<Config, Error> {
-        let mut configs = Vec::default();
-
-        let mut stream = self.config_files();
-
-        while let Some(config) = stream.next() {
-            configs.push(config?);
-        }
+        let mut configs = self.config_files().collect::<Result<Vec<_>, _>>()?;
 
         if let Some(sorter) = &self.0.sorter {
             configs.sort_by(|a, b| sorter(&a.path, &b.path));
@@ -319,10 +310,7 @@ pub fn find_files<'a>(
         .map(move |search_path| search_path.locate(patterns))
         .filter_map(|item| match item {
             Ok(ret) => Some(ret),
-            Err(_) => {
-                println!("Got ERRRR");
-                None
-            }
+            Err(_) => None,
         })
         .flatten()
         .filter_map(move |val| {
