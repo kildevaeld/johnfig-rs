@@ -16,7 +16,7 @@ pub struct Context<'a> {
 fn main() -> Result<(), Box<dyn std::error::Error>> {
     pretty_env_logger::init();
 
-    let cfg = {
+    let mut cfg = {
         let finder = ConfigBuilder::new()
             .with_locator(DirWalkLocator::new("./examples".into(), 2)?)
             .with_current_path()?
@@ -34,10 +34,10 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         finder.config()
     }?;
 
-    // cfg["database"] = value!({
-    //     "address": "http://github.com",
-    //     "user": "rasmus"
-    // });
+    cfg["database"] = value!({
+        "address": "http://github.com",
+        "user": "rasmus"
+    });
 
     println!("Debug {:#?}", cfg);
 
