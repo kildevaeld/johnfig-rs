@@ -48,8 +48,8 @@ impl Config {
             if !self.inner.contains(&key) {
                 self.inner.insert(key, value);
             } else {
-                let mut prev = self.inner.get_mut(&key).unwrap();
-                merge(&mut prev, value);
+                let prev = self.inner.get_mut(&key).unwrap();
+                merge(prev, value);
             }
         }
     }

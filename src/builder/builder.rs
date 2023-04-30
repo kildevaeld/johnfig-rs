@@ -1,21 +1,19 @@
+use super::config_file::ConfigFile;
 use crate::config::Config;
 use crate::locator::locatorbox;
 use crate::{
     locator::{BoxLocator, DirLocator, Locator},
     Error,
 };
+use odu_value::{merge, Map};
 use serde::Serialize;
 use std::{
     cmp::Ordering,
-    collections::{BTreeMap, HashSet},
+    collections::HashSet,
     path::{Path, PathBuf},
     sync::Arc,
 };
 use toback::{Encoder, Toback, TobackBuilder};
-
-use odu_value::{merge, Map, Value};
-
-use super::config_file::ConfigFile;
 
 #[derive(serde::Serialize)]
 struct Context {
