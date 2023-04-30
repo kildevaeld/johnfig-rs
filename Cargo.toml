@@ -8,7 +8,7 @@ version = "0.1.0"
 [features]
 default = []
 
-serde = ["dep:serde", "value/serde"]
+serde = ["dep:serde", "odu-value/serde"]
 
 builder = [
     "dep:glob",
@@ -30,8 +30,7 @@ yaml = ["toback?/yaml"]
 lua = ["toback?/lua"]
 
 [dependencies]
-value = { git = "https://github.com/kildevaeld/value-rs", features = ["std"] }
-
+odu-value = { git = "https://github.com/kildevaeld/odu-rs", features = ["std"] }
 glob = { version = "0.3", optional = true }
 log = { version = "0.4", optional = true }
 pathdiff = { version = "0.2", optional = true }

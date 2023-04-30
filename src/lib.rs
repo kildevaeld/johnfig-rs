@@ -9,7 +9,7 @@ mod config;
 
 pub use self::config::Config;
 
-pub use value::{value, Value};
+pub use odu_value::{value, Value};
 
 #[cfg(feature = "builder")]
 pub use self::{

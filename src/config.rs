@@ -1,9 +1,9 @@
-use std::{collections::BTreeMap, path::PathBuf};
-use value::{merge, Value};
+use odu_value::{merge, Map, Value};
+use std::path::PathBuf;
 
 #[derive(Debug, Default, Clone)]
 pub struct Config {
-    pub(crate) inner: BTreeMap<String, Value>,
+    pub(crate) inner: Map,
     pub(crate) files: Vec<PathBuf>,
 }
 
@@ -24,11 +24,11 @@ impl Config {
     pub fn try_get<'a, S: serde::Deserialize<'a>>(
         &self,
         name: &str,
-    ) -> Result<S, value::de::DeserializerError> {
+    ) -> Result<S, odu_value::de::DeserializerError> {
         if let Some(v) = self.inner.get(name).cloned() {
-            v.try_into()
+            S::deserialize(v)
         } else {
-            Err(value::de::DeserializerError::Custom(format!(
+            Err(odu_value::de::DeserializerError::Custom(format!(
                 "field not found: {}",
                 name
             )))
@@ -40,12 +40,12 @@ impl Config {
     }
 
     pub fn contains(&self, name: impl AsRef<str>) -> bool {
-        self.inner.contains_key(name.as_ref())
+        self.inner.contains(name.as_ref())
     }
 
     pub fn extend(&mut self, config: Config) {
         for (key, value) in config.inner.into_iter() {
-            if !self.inner.contains_key(&key) {
+            if !self.inner.contains(&key) {
                 self.inner.insert(key, value);
             } else {
                 let mut prev = self.inner.get_mut(&key).unwrap();
@@ -57,8 +57,8 @@ impl Config {
     #[cfg(feature = "serde")]
     pub fn try_into<'de, T: serde::Deserialize<'de>>(
         self,
-    ) -> Result<T, value::de::DeserializerError> {
-        Value::Map(self.inner.into()).try_into()
+    ) -> Result<T, odu_value::de::DeserializerError> {
+        T::deserialize(Value::Map(self.inner))
     }
 }
 
@@ -72,7 +72,7 @@ impl<S: AsRef<str>> std::ops::Index<S> for Config {
 
 impl<S: AsRef<str>> std::ops::IndexMut<S> for Config {
     fn index_mut(&mut self, idx: S) -> &mut Self::Output {
-        if !self.inner.contains_key(idx.as_ref()) {
+        if !self.inner.contains(idx.as_ref()) {
             self.inner.insert(idx.as_ref().to_owned(), Value::None);
         }
 
@@ -97,7 +97,7 @@ impl<'de> serde::Deserialize<'de> for Config {
         D: serde::de::Deserializer<'de>,
     {
         Ok(Config {
-            inner: BTreeMap::<String, Value>::deserialize(deserializer)?,
+            inner: Map::deserialize(deserializer)?,
             files: Vec::default(),
         })
     }

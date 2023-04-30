@@ -13,7 +13,7 @@ use std::{
 };
 use toback::{Encoder, Toback, TobackBuilder};
 
-use value::{merge, Map, Value};
+use odu_value::{merge, Map, Value};
 
 use super::config_file::ConfigFile;
 
@@ -309,13 +309,10 @@ impl ConfigFinder {
     }
 }
 
-fn merge_config(
-    mut config: BTreeMap<String, Value>,
-    files: Vec<ConfigFile<Map>>,
-) -> BTreeMap<String, Value> {
+fn merge_config(mut config: Map, files: Vec<ConfigFile<Map>>) -> Map {
     for file in files.into_iter() {
         for (key, value) in file.config.into_iter() {
-            if !config.contains_key(&key) {
+            if !config.contains(&key) {
                 config.insert(key, value);
             } else {
                 let mut prev = config.get_mut(&key).unwrap();
