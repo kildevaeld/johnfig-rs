@@ -111,12 +111,15 @@ impl ConfigBuilder {
         self
     }
 
-    pub fn with_encoder<L: Encoder<Map> + Send + 'static>(mut self, encoder: L) -> Self {
+    pub fn with_encoder<L: Encoder<Map> + Send + Sync + 'static>(mut self, encoder: L) -> Self {
         self.loader.add_encoder(encoder);
         self
     }
 
-    pub fn add_encoder<L: Encoder<Map> + Send + 'static>(&mut self, encoder: L) -> &mut Self {
+    pub fn add_encoder<L: Encoder<Map> + Send + Sync + 'static>(
+        &mut self,
+        encoder: L,
+    ) -> &mut Self {
         self.loader.add_encoder(encoder);
         self
     }
