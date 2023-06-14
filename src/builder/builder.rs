@@ -6,7 +6,8 @@ use crate::{
     Error,
 };
 use odu_value::{merge, Map};
-use serde::Serialize;
+use serde::de::DeserializeOwned;
+use serde::{Deserialize, Serialize};
 use std::{
     cmp::Ordering,
     collections::HashSet,
@@ -183,7 +184,7 @@ impl ConfigBuilder {
         let search_names = loader
             .extensions()
             .iter()
-            .map(|ext| {
+            .flat_map(|ext| {
                 let ctx = create_ctx(ext);
                 search_names
                     .iter()
@@ -194,7 +195,6 @@ impl ConfigBuilder {
                     })
                     .collect::<Vec<_>>()
             })
-            .flatten()
             .collect::<Result<Vec<_>, Error>>()?;
 
         log::debug!("using search names: {:?}", search_names);
@@ -232,7 +232,43 @@ impl ConfigFinder {
         find_files(&self.0.locators, &self.0.patterns)
     }
 
-    pub fn config_files<'a>(&'a self) -> impl Iterator<Item = Result<ConfigFile<Map>, Error>> + 'a {
+    // pub fn config_files<'a>(&'a self) -> impl Iterator<Item = Result<ConfigFile<Map>, Error>> + 'a {
+    //     self.files()
+    //         .filter_map(|search_path| {
+    //             if let Some(filter) = &self.0.filter {
+    //                 if filter(&search_path) {
+    //                     Some(search_path)
+    //                 } else {
+    //                     None
+    //                 }
+    //             } else {
+    //                 Some(search_path)
+    //             }
+    //         })
+    //         .map(move |search_path| {
+    //             let ext = match search_path.extension() {
+    //                 Some(ext) => ext.to_string_lossy(),
+    //                 None => "json".into(),
+    //             };
+
+    //             let data = std::fs::read(&search_path)?;
+
+    //             let out = self.0.loader.load(&data, &ext)?;
+
+    //             log::trace!("found path: {:?}", search_path);
+
+    //             Result::<_, Error>::Ok(ConfigFile {
+    //                 config: out,
+    //                 path: search_path,
+    //             })
+    //         })
+    // }
+
+    pub fn config_files<T: DeserializeOwned + Serialize + 'static>(
+        &self,
+    ) -> impl Iterator<Item = Result<ConfigFile<T>, Error>> + '_ {
+        let loader = TobackBuilder::<T>::default().build();
+
         self.files()
             .filter_map(|search_path| {
                 if let Some(filter) = &self.0.filter {
@@ -253,7 +289,7 @@ impl ConfigFinder {
 
                 let data = std::fs::read(&search_path)?;
 
-                let out = self.0.loader.load(&data, &ext)?;
+                let out = loader.load(&data, &ext)?;
 
                 log::trace!("found path: {:?}", search_path);
 
