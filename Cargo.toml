@@ -6,7 +6,7 @@ version = "0.1.0"
 
 
 [features]
-default = ["serde", "builder"]
+default = []
 
 serde = ["dep:serde", "vaerdi/serde"]
 
