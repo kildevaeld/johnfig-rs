@@ -1,5 +1,5 @@
-use odu_value::{merge, Map, Value};
 use std::path::PathBuf;
+use vaerdi::{merge, Map, Value};
 
 #[derive(Debug, Default, Clone)]
 pub struct Config {
@@ -24,11 +24,26 @@ impl Config {
     pub fn try_get<'a, S: serde::Deserialize<'a>>(
         &self,
         name: &str,
-    ) -> Result<S, odu_value::de::DeserializerError> {
+    ) -> Result<S, vaerdi::de::DeserializerError> {
         if let Some(v) = self.inner.get(name).cloned() {
             S::deserialize(v)
         } else {
-            Err(odu_value::de::DeserializerError::Custom(format!(
+            Err(vaerdi::de::DeserializerError::Custom(format!(
+                "field not found: {}",
+                name
+            )))
+        }
+    }
+
+    #[cfg(feature = "serde")]
+    pub fn try_set<'a, S: serde::Deserialize<'a>>(
+        &self,
+        name: &str,
+    ) -> Result<S, vaerdi::de::DeserializerError> {
+        if let Some(v) = self.inner.get(name).cloned() {
+            S::deserialize(v)
+        } else {
+            Err(vaerdi::de::DeserializerError::Custom(format!(
                 "field not found: {}",
                 name
             )))
@@ -57,7 +72,7 @@ impl Config {
     #[cfg(feature = "serde")]
     pub fn try_into<'de, T: serde::Deserialize<'de>>(
         self,
-    ) -> Result<T, odu_value::de::DeserializerError> {
+    ) -> Result<T, vaerdi::de::DeserializerError> {
         T::deserialize(Value::Map(self.inner))
     }
 }
@@ -65,7 +80,7 @@ impl Config {
 impl<S: AsRef<str>> std::ops::Index<S> for Config {
     type Output = Value;
     fn index(&self, idx: S) -> &Self::Output {
-        static NULL: Value = Value::None;
+        static NULL: Value = Value::Null;
         self.inner.get(idx.as_ref()).unwrap_or(&NULL)
     }
 }
@@ -73,7 +88,7 @@ impl<S: AsRef<str>> std::ops::Index<S> for Config {
 impl<S: AsRef<str>> std::ops::IndexMut<S> for Config {
     fn index_mut(&mut self, idx: S) -> &mut Self::Output {
         if !self.inner.contains(idx.as_ref()) {
-            self.inner.insert(idx.as_ref().to_owned(), Value::None);
+            self.inner.insert(idx.as_ref().to_owned(), Value::Null);
         }
 
         self.inner.get_mut(idx.as_ref()).unwrap()

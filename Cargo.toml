@@ -6,9 +6,9 @@ version = "0.1.0"
 
 
 [features]
-default = []
+default = ["serde", "builder"]
 
-serde = ["dep:serde", "odu-value/serde"]
+serde = ["dep:serde", "vaerdi/serde"]
 
 builder = [
     "dep:glob",
@@ -17,7 +17,7 @@ builder = [
     "dep:tinytemplate",
     "dep:toback",
     "dep:walkdir",
-    "dep:log",
+    "dep:tracing",
     "serde",
 ]
 
@@ -30,9 +30,9 @@ yaml = ["toback?/yaml"]
 lua = ["toback?/lua"]
 
 [dependencies]
-odu-value = { git = "https://github.com/kildevaeld/odu-rs", features = ["std"] }
+vaerdi = { git = "https://github.com/kildevaeld/vaerdi-rs", features = ["std"] }
 glob = { version = "0.3", optional = true }
-log = { version = "0.4", optional = true }
+tracing = { version = "0.1", optional = true }
 pathdiff = { version = "0.2", optional = true }
 thiserror = { version = "1", optional = true }
 tinytemplate = { version = "1", optional = true }

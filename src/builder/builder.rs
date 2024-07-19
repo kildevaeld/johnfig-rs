@@ -5,9 +5,8 @@ use crate::{
     locator::{BoxLocator, DirLocator, Locator},
     Error,
 };
-use odu_value::{merge, Map};
 use serde::de::DeserializeOwned;
-use serde::{Deserialize, Serialize};
+use serde::Serialize;
 use std::{
     cmp::Ordering,
     collections::HashSet,
@@ -15,6 +14,7 @@ use std::{
     sync::Arc,
 };
 use toback::{Encoder, Toback, TobackBuilder};
+use vaerdi::{merge, Map};
 
 #[derive(serde::Serialize)]
 struct Context {
@@ -182,7 +182,7 @@ impl ConfigBuilder {
 
         let loader = Arc::new(self.loader.build());
 
-        log::debug!("loaders registered: {:?}", loader.extensions());
+        tracing::debug!("loaders registered: {:?}", loader.extensions());
 
         let search_names = loader
             .extensions()
@@ -200,7 +200,7 @@ impl ConfigBuilder {
             })
             .collect::<Result<Vec<_>, Error>>()?;
 
-        log::debug!("using search names: {:?}", search_names);
+        tracing::debug!("using search names: {:?}", search_names);
 
         let patterns = search_names
             .iter()
@@ -235,38 +235,6 @@ impl ConfigFinder {
         find_files(&self.0.locators, &self.0.patterns)
     }
 
-    // pub fn config_files<'a>(&'a self) -> impl Iterator<Item = Result<ConfigFile<Map>, Error>> + 'a {
-    //     self.files()
-    //         .filter_map(|search_path| {
-    //             if let Some(filter) = &self.0.filter {
-    //                 if filter(&search_path) {
-    //                     Some(search_path)
-    //                 } else {
-    //                     None
-    //                 }
-    //             } else {
-    //                 Some(search_path)
-    //             }
-    //         })
-    //         .map(move |search_path| {
-    //             let ext = match search_path.extension() {
-    //                 Some(ext) => ext.to_string_lossy(),
-    //                 None => "json".into(),
-    //             };
-
-    //             let data = std::fs::read(&search_path)?;
-
-    //             let out = self.0.loader.load(&data, &ext)?;
-
-    //             log::trace!("found path: {:?}", search_path);
-
-    //             Result::<_, Error>::Ok(ConfigFile {
-    //                 config: out,
-    //                 path: search_path,
-    //             })
-    //         })
-    // }
-
     pub fn config_files<T: DeserializeOwned + Serialize + 'static>(
         &self,
     ) -> impl Iterator<Item = Result<ConfigFile<T>, Error>> + '_ {
@@ -294,7 +262,7 @@ impl ConfigFinder {
 
                 let out = loader.load(&data, &ext)?;
 
-                log::trace!("found path: {:?}", search_path);
+                tracing::trace!("found path: {:?}", search_path);
 
                 Result::<_, Error>::Ok(ConfigFile {
                     config: out,
