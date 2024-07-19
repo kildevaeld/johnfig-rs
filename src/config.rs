@@ -36,18 +36,12 @@ impl Config {
     }
 
     #[cfg(feature = "serde")]
-    pub fn try_set<'a, S: serde::Deserialize<'a>>(
-        &self,
+    pub fn try_set<S: serde::Serialize>(
+        &mut self,
         name: &str,
-    ) -> Result<S, vaerdi::de::DeserializerError> {
-        if let Some(v) = self.inner.get(name).cloned() {
-            S::deserialize(v)
-        } else {
-            Err(vaerdi::de::DeserializerError::Custom(format!(
-                "field not found: {}",
-                name
-            )))
-        }
+        value: S,
+    ) -> Result<Option<Value>, vaerdi::ser::SerializerError> {
+        Ok(self.inner.insert(name, vaerdi::ser::to_value(value)?))
     }
 
     pub fn set(&mut self, name: impl ToString, value: impl Into<Value>) -> Option<Value> {
